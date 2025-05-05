@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mistral-deployment
+  namespace: maia
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mistral
+  template:
+    metadata:
+      labels:
+        app: mistral
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      nodeSelector:
+       kubernetes.azure.com/managed: "false"
+      containers:
+      - name: mistral
+        image: hillsborolabcr.azurecr.io/mistral
+        ports:
+        - containerPort: 8000
+        env:
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-token-secret
+              key: HF_TOKEN
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "2"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mistral-service
+  namespace: maia
+spec:
+  selector:
+    app: mistral
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: LoadBalancer
