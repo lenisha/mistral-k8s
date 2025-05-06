@@ -1,0 +1,17 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt /app
+COPY download_model.py    /app
+
+# Create a virtual environment in the container
+RUN python3 -m venv .venv
+
+# Activate the virtual environment
+ENV PATH="/app/.venv/bin:$PATH"
+
+RUN pip install --no-cache-dir -r requirements.txt 
+
+# Get the models from Hugging Face to bake into the container
+ENTRYPOINT ["python3", "-u", "download_model.py"]
