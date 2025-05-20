@@ -1,0 +1,34 @@
+---
+# Define role
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: maia
+  name: pod-watch-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["watch", "list"]
+---
+# Define service account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: maia-sa
+  namespace: maia
+---
+# Define service account role binding
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: pod-watch-role-binding
+  namespace: maia
+subjects:
+  - kind: ServiceAccount
+    name: maia-sa
+    namespace: maia
+roleRef:
+  kind: Role
+  name: pod-watch-role
+  apiGroup: rbac.authorization.k8s.io
+---

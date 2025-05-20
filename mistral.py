@@ -1,20 +1,28 @@
 import torch
-#import torch_maia
-#import maia_athena
+import torch_maia
+import maia_athena
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import streamlit as st
 import time,os
 
+torch.classes.__path__ = []
 
 # Load the Maia firmware and increase the global HBM domain size 
 # so that the full model weights can be copied to the device
 
-#torch_maia.load_firmware(0)
-#maia_athena.get_nepal_device(0).set_global_hbm_limit(int(40e9))
-#device="maia"
+# Set device based on ENV variable DEVICE_TYPE (NPU/CPU)
+device_type = os.getenv("DEVICE_TYPE", "auto").lower()
+print(f" --- Device Type: {device_type}")
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"Using device: {device}")
+if device_type == "maia":
+    device = "maia"
+    torch_maia.load_firmware(0)
+    maia_athena.get_nepal_device(0).set_global_hbm_limit(int(40e9))
+elif device_type == "cpu":
+    device = "cpu"
+else:
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f" --- Using device: {device}")
 
 @st.cache_resource
 def load_model():
@@ -41,9 +49,9 @@ def generate_response(prompt):
     model.to(torch.bfloat16)
     model.to(device)
     # Generate the response
-    generated_ids = model.generate(**model_inputs, max_new_tokens=10, do_sample=True)
-    # Decode the generated response
-    result = tokenizer.batch_decode(generated_ids)[0]
+    generated_ids = model.generate(**model_inputs, max_new_tokens=20, do_sample=True)
+    # Decode the generated response, skipping special tokens like <s>
+    result = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
     return result
 
 
@@ -60,6 +68,7 @@ except Exception as e:
   
 
 st.title("Mistral Model Playground")
+st.markdown(f"**Device in use:** `{device}`")
 prompt = st.text_area("Enter your prompt:")
 generate_button = st.button("Generate")
 st.markdown("**Model Output:**")
@@ -79,8 +88,10 @@ if generate_button:
             st.markdown("**Result:**")
             st.write(result)
             st.info(f"Time taken to generate response: {elapsed:.2f} seconds")
-            print(result)
-            st.spinner("Generating response finidhed")
+
+            print(' --- ' + result + ' --- ')
+            print(f" --- Time taken to generate response: {elapsed:.2f} seconds")
+            st.spinner("Generating response finished")
 
     else:
         st.warning("Please enter a prompt.")

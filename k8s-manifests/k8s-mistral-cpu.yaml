@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mistral-deployment
+  namespace: maia
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mistral
+  template:
+    metadata:
+      labels:
+        app: mistral
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      nodeSelector:
+       kubernetes.azure.com/managed: "false"
+      volumes:
+      - name: model-volume
+        emptyDir: {}
+
+      containers:
+      - name: mistral
+        image: hillsborolabcr.azurecr.io/mistral:npu-v2
+        ports:
+        - containerPort: 8000
+
+        resources:
+          requests:
+            memory: "50Gi"
+            cpu: "5"
+          limits:
+            memory: "75Gi"
+            cpu: "35"
